@@ -3,15 +3,15 @@ from pathlib import Path
 
 
 class FileService:   
-    def read(file_path):
+    def read(self, file_path):
         content = ""
         with fitz.open(file_path) as doc:
             for page in doc:
-                classmethodontent += page.get_text()
+                content += page.get_text()
         return content
     
     def read_all(self, files):
-        return [file for file in files]
+        return [self.read(file) for file in files]
 
     def save_uploaded_files(self, uploaded_files, destination_folder):
         destination_path = Path(destination_folder)

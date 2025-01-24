@@ -3,6 +3,7 @@ from streamlit_option_menu import option_menu
 from database.tiny_db import AnalyserDatabase
 from factories.job_factory import JobFactory
 from models.job import Job
+from service.llama_client import LlamaClient
 
 
 DESTINATION_PATH = 'storage'
@@ -14,6 +15,7 @@ MENUS = (
 
 class JobRoute:
     def __init__(self) -> None:
+        self.llm = LlamaClient()
         self.database = AnalyserDatabase()
         self.jobs = [job.get('name') for job in self.database.jobs.all()]
         self.job = {}
@@ -40,16 +42,37 @@ class JobRoute:
             if not all([sheet_name, job_name, main_activities, prerequisites, differentials]):
                     st.error('O meu querido, não tem como salvar uma vaga sem preencher os dados!')
                     return
+                
+            job_dict = {
+                'job_name': job_name,
+                'main_activities': main_activities,
+                'prerequisites': prerequisites,
+                'differentials': differentials,
+            }
             
-            JobFactory(
-                job_name,
-                main_activities,
-                prerequisites,
-                differentials,
-                sheet_name
-            ).create()
+            with st.spinner('Aguarde um momento...'):
             
-            st.warning('Compartilhe a tabela (google sheets) e a pasta do drive com o email: ga-api-client@scidata-299417.iam.gserviceaccount.com')
+                competence = self.llm.create_competence(job_dict)
+                strategies = self.llm.create_strategies(job_dict)
+                qualification = self.llm.create_qualification(job_dict)
+                score_qualification = self.llm.score_competence(job_dict, qualification)
+                
+                print(score_qualification)
+                print(type(score_qualification))
+        
+                JobFactory(
+                    name=job_name,
+                    main_activities=main_activities,
+                    prerequisites=prerequisites,
+                    differentials=differentials,
+                    sheet_name=sheet_name,
+                    competence=competence,
+                    strategies=strategies,
+                    qualifications=qualification,
+                    score_qualification=score_qualification,
+                ).create()
+                
+                st.warning('Compartilhe a tabela (google sheets) e a pasta do drive com o email: ga-api-client@scidata-299417.iam.gserviceaccount.com')
 
     def edition_job_form(self, st, options):
         all_sheet_names = self.database.get_all_sheet_names_in_jobs()

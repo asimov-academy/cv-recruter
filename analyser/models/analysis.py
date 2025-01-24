@@ -11,3 +11,4 @@ class Analysis(BaseModel):
     education: List[str]
     languages: List[str]
     score: float
+

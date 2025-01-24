@@ -24,6 +24,16 @@ class AnalyseRoute:
         self.data_analysis = self.database.get_analysis_by_job_id(self.job.get('id'))
         return self.data_analysis
     
+    def get_resum_by_resum_id(self, resum_id):
+        return self.database.get_resum_by_resum_id(resum_id)
+    
+    def get_categories_job(self):
+        return (
+            self.job.get('competence'), 
+            self.job.get('strategies'), 
+            self.job.get('qualifications'),
+        )
+
     def _create_selected_candidates_df(self, selected_candidates):
         return pd.DataFrame(selected_candidates)
     
@@ -72,7 +82,7 @@ class AnalyseRoute:
             gridOptions=self._grid_builder(),
             enable_enterprise_modules=True,
             update_mode=GridUpdateMode.SELECTION_CHANGED,
-            theme='streamlit',
+            theme='balham',
         )
         
         df = self._create_selected_candidates_df(response.get('selected_rows', []))

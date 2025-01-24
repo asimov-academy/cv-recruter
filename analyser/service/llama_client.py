@@ -1,23 +1,103 @@
 from dotenv import load_dotenv
-from ollama.repositories import HTTPXSyncClient
-from ollama.services import SyncCompletionService
-from ollama.models import GenerateCompletionRequest
+from langchain_openai import ChatOpenAI
 import re
 
 load_dotenv()
 
 
 class LlamaClient:
-    def __init__(self, model_id="llama3.1:8b-instruct-fp16", keep_alive = '50s'):
-        self.sync_client = HTTPXSyncClient(base_url="http://localhost:11434/api")
-        self.client = SyncCompletionService(self.sync_client, model=model_id, keep_alive=keep_alive)
-        self.model_id = model_id
-        
-    def generate_response(self, prompt: GenerateCompletionRequest):
-        response = self.client.generate_completion(prompt)
-        return response.response
+    def __init__(self):
+        self.client = ChatOpenAI(
+            model_name="gpt-4o-mini",
+            temperature=0.1,
+        )
 
-    def resume_cv(self, cv, job):
+    def generate_response(self, prompt):
+        response = self.client.invoke(prompt)
+        return response.content
+    
+    def score_competence(self, job, qualifications):
+        prompt = f'''
+                Abaixo segue um exemplo de **prompt** que, a partir da **descrição de uma vaga** e de suas **qualificações** definidas, solicita à IA que **gere o score mínimo** necessário para cada uma das qualificações. Esse score poderá ser usado como um parâmetro de corte ou referência para avaliar candidatos.
+
+                ### Prompt: Definir Score Necessário para Vaga
+
+                Você é um consultor de RH responsável por definir o nível mínimo de proficiência exigido para cada qualificação em uma vaga. 
+                
+                Receba a seguir:
+
+                Vaga:
+                {job}
+
+                Qualificações da vaga:
+                {qualifications}
+
+                Com base na descrição da vaga, atribua um score mínimo (entre 1 e 5, podendo ser decimal) para cada uma das qualificações. 
+                Esses scores representam o nível de proficiência mínimo esperado de um candidato para ser considerado adequado à vaga.
+                Retorne apenas a lista de 5 scores, cada um em uma linha separada, sem comentários adicionais.
+
+                **Exemplo de resultado esperado (meramente ilustrativo):**
+                3.5
+                4.0
+                2.8
+                4.3
+                3.0
+            '''
+        result_raw = self.generate_response(prompt)
+        scores = []
+        for line in result_raw.strip().split('\n'):
+            line = line.strip()
+            try:
+                scores.append(float(line))
+            except ValueError:
+                # Ignora linhas que não possam ser convertidas em float
+                pass
+
+        return scores
+        
+    def score_qualifications(self, cv, qualifications):
+        prompt = f'''
+                Abaixo está um **exemplo de prompt único** que recebe o **currículo de um candidato** e uma **lista de 5 qualificações**, pedindo à IA que avalie cada qualificação com uma **nota de 1 a 5 (com uso de decimais permitido)**, retornando cada pontuação em **linhas separadas**.
+
+                ---
+
+                ### Prompt
+
+                ```
+                Você é um avaliador imparcial e recebeu as seguintes informações:
+                Currículo do candidato:
+                {cv}
+
+                Lista de 5 qualificações:
+                {qualifications}
+
+                Com base no que está descrito no currículo, avalie o nível de atendimento a cada uma dessas 5 qualificações 
+                atribuindo uma nota de 1 a 5 (podendo usar números decimais). 
+                Retorne apenas as 5 notas, cada uma em uma linha separada, sem comentários adicionais.
+                ```
+
+                **Exemplo de saída esperada** (meramente ilustrativa):
+                
+                2.8
+                4.2
+                3.0
+                4.9
+                1.7
+            '''
+        result_raw = self.generate_response(prompt)
+        scores = []
+        for line in result_raw.strip().split('\n'):
+            line = line.strip()
+            try:
+                scores.append(float(line))
+            except ValueError:
+                # Ignora linhas que não possam ser convertidas em float
+                pass
+
+        return scores
+
+
+    def resume_cv(self, cv):
         prompt = f'''
             **Solicitação de Resumo de Currículo em Markdown:**
             
@@ -25,7 +105,11 @@ class LlamaClient:
             
             {cv}
 
-            Por favor, gere um resumo do currículo fornecido, formatado em Markdown, seguindo rigorosamente o modelo abaixo. **Não adicione seções extras, tabelas ou qualquer outro tipo de formatação diferente da especificada.** Preencha cada seção com as informações relevantes, garantindo que o resumo seja preciso e focado.
+            Por favor, gere um resumo do currículo fornecido, formatado em Markdown, 
+            seguindo rigorosamente o modelo abaixo. **Não adicione seções extras, 
+            tabelas ou qualquer outro tipo de formatação diferente da especificada.
+            * Preencha cada seção com as informações relevantes, 
+            garantindo que o resumo seja preciso e focado.
 
             **Formato de Output Esperado:**
 
@@ -47,12 +131,53 @@ class LlamaClient:
 
             '''
 
-        result_raw = self.generate_response(GenerateCompletionRequest(prompt=prompt))
+        result_raw = self.generate_response(prompt)
         try:
             result = result_raw.split('```markdown')[1]
         except:
             result = result_raw
         return result
+    
+    def create_competence(self, job):
+        prompt = f'''
+                    Você é um consultor especializado em tecnologia. 
+                    Com base na vaga a seguir: {job}, crie 5 categorias para um “Radar de Competências e Ferramentas de Desenvolvimento” 
+                    que abranjam linguagens de programação, frameworks, bibliotecas, sistemas de controle de versão, plataformas de cloud, 
+                    ferramentas de automação e outros recursos tecnológicos relevantes para a função descrita.
+                    
+                    Essas categorias devem conter apenas uma palavra ou um nome composto por 2 palavras, nao mais que isso.
+                    você deve responder apenas as categorias separadas por nova linha
+                '''
+        result_raw = self.generate_response(prompt)
+        return [line.strip() for line in result_raw.strip().split('\n') if line.strip()]
+    
+    def create_strategies(self, job):
+        prompt = f'''
+                    Quero que você atue como um consultor de marketing digital para a vaga de {job}.
+                    Crie uma lista de 5 categorias que destaquem as principais plataformas, estratégias e métodos de otimização de campanhas 
+                    de marketing relevantes para essa vaga. 
+                    Considere ferramentas de anúncios, SEO, testes A/B, CRM e outras áreas que se encaixem no contexto de {job}.
+                    
+                    Essas categorias devem conter apenas uma palavra ou um nome composto por 2 palavras, nao mais que isso.
+                    você deve responder apenas as categorias separadas por nova linha
+                '''
+        result_raw = self.generate_response(prompt)
+        return [line.strip() for line in result_raw.strip().split('\n') if line.strip()]
+
+
+    def create_qualification(self, job):
+        prompt = f'''
+                Quero que você atue como um consultor de RH especializado na vaga de {job}.
+                Crie 5 categorias que representem o perfil profissional e as qualificações desejadas para o candidato. 
+                Pense em senioridade, formação, certificações, disponibilidade, proficiência em idiomas ou outras 
+                competências comportamentais e de background relevantes para {job}.
+                
+                Essas categorias devem conter apenas uma palavra ou um nome composto por 2 palavras, nao mais que isso.
+                você deve responder apenas as categorias separadas por nova linha
+                '''
+        result_raw = self.generate_response(prompt)
+        return [line.strip() for line in result_raw.strip().split('\n') if line.strip()]
+
 
     def generate_score(self, cv, job):
         prompt = f'''
@@ -85,7 +210,7 @@ class LlamaClient:
             **Atenção:** Seja rigoroso ao atribuir as notas. A nota máxima é 10.0, e o output deve conter apenas "Pontuação Final: x.x".
         
         '''
-        result_raw = self.generate_response(GenerateCompletionRequest(prompt=prompt))
+        result_raw = self.generate_response(prompt)
         pattern = r"(?i)Pontuação Final[:\s]*([\d,.]+(?:/\d{1,2})?)"
         try:
             print('===================================================================================================================')
@@ -144,7 +269,7 @@ class LlamaClient:
             
             {cv}
         '''
-        result_raw = self.generate_response(GenerateCompletionRequest(prompt=prompt))
-        result = result_raw        
+        result_raw = self.generate_response(prompt)
+        result = result_raw 
         return result
 

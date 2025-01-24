@@ -12,46 +12,49 @@ class AnalysisFactory:
         self.resum_id = resum_id
         self.score = score
         
-        self.analysis_data = self._extract_data_analysis()
+        self.analysis_data = self._extract_data_analysis(resum_content, job_id, resum_id, score).model_dump()
     
-    def _extract_data_analysis(self) -> dict:
+    def _extract_data_analysis(self, resum_cv, job_id, resum_id, score) -> Analysis:
         secoes_dict = {
             "id": str(uuid.uuid4()),
-            "job_id": self.job_id,
-            "resum_id": self.resum_id,
+            "job_id": job_id,
+            "resum_id": resum_id,
             "name": "",
-            "total_work_experience": [],
             "skills": [],
             "education": [],
             "languages": [],
-            "salary_expectation": [],
-            "score": self.score
+            "score": score
         }
+        
+        print(f'entrou na extração: {secoes_dict["score"]}')
 
-        # Regex patterns para capturar as seções
         patterns = {
-            "name": r"## Nome Completo\s*(.*)",
-            "total_work_experience": r"## Duração Total de Experiência\s*([\s\S]*?)(?=##|$)",
+            "name": r"(?:## Nome Completo\s*|Nome Completo\s*\|\s*Valor\s*\|\s*\S*\s*\|\s*)(.*)",
             "skills": r"## Habilidades\s*([\s\S]*?)(?=##|$)",
             "education": r"## Educação\s*([\s\S]*?)(?=##|$)",
             "languages": r"## Idiomas\s*([\s\S]*?)(?=##|$)",
-            "salary_expectation": r"## Pretensão Salarial\s*([\s\S]*?)(?=##|$)"
         }
 
-        # Função para sanitizar as strings
         def clean_string(s: str) -> str:
             return re.sub(r"[\*\-]+", "", s).strip()
 
-        # Extração dos dados usando regex e sanitização
         for secao, pattern in patterns.items():
-            match = re.search(pattern, self.resum_cv)
+            match = re.search(pattern, resum_cv)
             if match:
                 if secao == "name":
                     secoes_dict[secao] = clean_string(match.group(1))
                 else:
                     secoes_dict[secao] = [clean_string(item) for item in match.group(1).split('\n') if item.strip()]
 
-        return secoes_dict
+        # Validação para garantir que nenhuma seção obrigatória esteja vazia
+        for key in ["name", "education", "skills"]:
+            if not secoes_dict[key] or (isinstance(secoes_dict[key], list) and not any(secoes_dict[key])):
+                raise ValueError(f"A seção '{key}' não pode ser vazia ou uma string vazia.")
+        
+        import pprint
+        pprint.pp(secoes_dict)
+
+        return Analysis(**secoes_dict)
 
     def create(self) -> Analysis:
         analysis = Analysis(**self.analysis_data)

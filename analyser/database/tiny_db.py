@@ -51,6 +51,11 @@ class AnalyserDatabase(TinyDB):
         result = self.analysis.search(analysis.job_id == job_id)
         return result
 
+    def get_analysis_by_resum_id(self, resum_id):
+        analysis = Query()
+        result = self.analysis.search(analysis.resum_id == resum_id)
+        return result[0] if result else None
+
     def update_job(self, new_data: Job):
         query = Query()
         self.jobs.update(new_data.model_dump(), query.id == new_data.id)
