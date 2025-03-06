@@ -93,90 +93,90 @@ def render_analyse():
             analyse_route.clean_analyse()
             st.rerun()
 
-        # ----------------------------------------------------------------------------
-        #        GRAFO DE TODOS OS CANDIDATOS X SUAS HABILIDADES
-        # ----------------------------------------------------------------------------
-        if not analyse_route._create_dataframe_to_analyse().empty:
-            st.subheader("Grafo de Candidatos x Competências")
+        # # ----------------------------------------------------------------------------
+        # #        GRAFO DE TODOS OS CANDIDATOS X SUAS HABILIDADES
+        # # ----------------------------------------------------------------------------
+        # if not analyse_route._create_dataframe_to_analyse().empty:
+        #     st.subheader("Grafo de Candidatos x Competências")
 
-            candidate_skills_dict = {}
-            for idx, row in analyse_route._create_dataframe_to_analyse().iterrows():
-                name = row["Nome"]
-                skills = row["Habilidades"]  # Deve ser uma lista de strings
-                candidate_skills_dict[name] = skills
+        #     candidate_skills_dict = {}
+        #     for idx, row in analyse_route._create_dataframe_to_analyse().iterrows():
+        #         name = row["Nome"]
+        #         skills = row["Habilidades"]  # Deve ser uma lista de strings
+        #         candidate_skills_dict[name] = skills
         
 
-            # Crie listas de nós (Node) e arestas (Edge)
-            nodes = []
-            edges = []
+        #     # Crie listas de nós (Node) e arestas (Edge)
+        #     nodes = []
+        #     edges = []
 
-            skill_set = set()
-            for skills_list in candidate_skills_dict.values():
-                skill_set.update(skills_list)
+        #     skill_set = set()
+        #     for skills_list in candidate_skills_dict.values():
+        #         skill_set.update(skills_list)
 
-            # Adiciona nós de candidatos (menor size e label é o próprio nome)
-            for candidate in candidate_skills_dict:
-                nodes.append(Node(
-                    id=candidate,
-                    label=candidate,
-                    size=8,           # <-- Deixando o nó bem menor
-                    color="#4169E1"    # Dourado
-                ))
+        #     # Adiciona nós de candidatos (menor size e label é o próprio nome)
+        #     for candidate in candidate_skills_dict:
+        #         nodes.append(Node(
+        #             id=candidate,
+        #             label=candidate,
+        #             size=8,           # <-- Deixando o nó bem menor
+        #             color="#4169E1"    # Dourado
+        #         ))
 
-            # Adiciona nós de skills (idem, menor size)
-            for skill in skill_set:
-                nodes.append(Node(
-                    id=skill,
-                    label=skill,
-                    size=5,          # <-- Menor ainda que o candidato
-                    color="#2E2E2E"   # Cinza escuro
-                ))
+        #     # Adiciona nós de skills (idem, menor size)
+        #     for skill in skill_set:
+        #         nodes.append(Node(
+        #             id=skill,
+        #             label=skill,
+        #             size=5,          # <-- Menor ainda que o candidato
+        #             color="#2E2E2E"   # Cinza escuro
+        #         ))
 
-            # Cria edges (Candidate -> Skill)
-            for candidate, skills_list in candidate_skills_dict.items():
-                for skill in skills_list:
-                    edges.append(Edge(
-                        source=candidate,
-                        target=skill,
-                        color="#787878"  # Aresta branca
-                    ))
+        #     # Cria edges (Candidate -> Skill)
+        #     for candidate, skills_list in candidate_skills_dict.items():
+        #         for skill in skills_list:
+        #             edges.append(Edge(
+        #                 source=candidate,
+        #                 target=skill,
+        #                 color="#787878"  # Aresta branca
+        #             ))
 
-            # Ajusta configuração do agraph
-            config = Config(
-                width="100%",          # Ocupa toda a largura disponível
-                height=500,            # Ajuste conforme desejar
-                directed=False,        
-                nodeHighlightBehavior=True,
-                highlightColor="#F0F0A0",
-                collapsible=True,
-                physics=True,          # Ativa o layout "força" que espalha os nós
-                node={
-                    # Essas configs são passadas para react-d3-graph
-                    "labelProperty": "label",       # Usa o campo 'label' de cada Node
-                    "renderLabel": True,
-                    "labelPosition": "top",         # Tenta posicionar o texto acima do nó
-                    "fontColor": "#FFFFFF",       # Branco forçado
-                    "fontSize": 12,
-                    "fontWeight": "normal",
-                    "highlightFontColor": "#800000",  # Também branco no hover/seleção
-                    "highlightFontSize": 12,
-                    "highlightFontWeight": "bold", 
-                },
-                link={
-                    "renderLabel": True           # Se quiser rótulos nas arestas, troque para True
-                },
-                d3={
-                    "linkLength": 150,             # Aumenta o espaço entre os nós
-                    "gravity": -200                # Ajuste para espalhar mais ou menos
-                }
-            )
+        #     # Ajusta configuração do agraph
+        #     config = Config(
+        #         width="100%",          # Ocupa toda a largura disponível
+        #         height=500,            # Ajuste conforme desejar
+        #         directed=False,        
+        #         nodeHighlightBehavior=True,
+        #         highlightColor="#F0F0A0",
+        #         collapsible=True,
+        #         physics=True,          # Ativa o layout "força" que espalha os nós
+        #         node={
+        #             # Essas configs são passadas para react-d3-graph
+        #             "labelProperty": "label",       # Usa o campo 'label' de cada Node
+        #             "renderLabel": True,
+        #             "labelPosition": "top",         # Tenta posicionar o texto acima do nó
+        #             "fontColor": "#FFFFFF",       # Branco forçado
+        #             "fontSize": 12,
+        #             "fontWeight": "normal",
+        #             "highlightFontColor": "#800000",  # Também branco no hover/seleção
+        #             "highlightFontSize": 12,
+        #             "highlightFontWeight": "bold", 
+        #         },
+        #         link={
+        #             "renderLabel": True           # Se quiser rótulos nas arestas, troque para True
+        #         },
+        #         d3={
+        #             "linkLength": 150,             # Aumenta o espaço entre os nós
+        #             "gravity": -200                # Ajuste para espalhar mais ou menos
+        #         }
+        #     )
 
-            # Renderiza o grafo
-            agraph(
-                nodes=nodes,
-                edges=edges,
-                config=config
-            )
+        #     # Renderiza o grafo
+        #     agraph(
+        #         nodes=nodes,
+        #         edges=edges,
+        #         config=config
+        #     )
             
             
 
